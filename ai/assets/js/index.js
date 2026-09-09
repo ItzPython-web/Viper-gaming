@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", async () => {
     // --- Configuration ---
-    const API_KEYS_URL = "https://groq-api-keys.pages.dev/apikeys.txt";
+    const API_KEYS_URL = "https://vipergaming3.vercel.app/ai/key.txt";
     const PRIMARY_VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"; 
     const baseSystemPrompt = "you are whizy, a helpful ai assistant, your creator is Mark Espinosa. When giving out info, you dont list it you just say it. Your output is in Markdown format. only use it if you are writing or coding something, do not use it in normal conversation.";
     

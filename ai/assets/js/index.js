@@ -66,11 +66,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const voices = window.speechSynthesis.getVoices();
 
         const preferred = [
-            "Microsoft David",
-            "Microsoft Guy",
-            "Google US English",
-            "Daniel",
-            "James"
+            "Microsoft David"
         ];
 
         for (const name of preferred) {

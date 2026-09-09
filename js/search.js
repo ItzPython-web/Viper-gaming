@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const GROQ_API_KEY = "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";
   const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-  const VISION_MODEL = "qwen/qwen3.6-27b";
+  const VISION_MODEL = "groq/compound";
 
   const SEARCH_SYSTEM_PROMPT =
     "You are the product search engine for Viper Gaming, a store that sells gaming mice, keyboards, and mousepads. " +

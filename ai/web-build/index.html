@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whizy Architect Pro | Version 1.0.0</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { 
+            --bg: #0b0f1a; --panel: #161b2a; --border: #2d334a; --accent: #00d4ff; 
+            --text: #e6edf3; --code-bg: #010409; --toolbar: #1f2433; --error: #ff4d4d;
+            --sidebar-w: 220px;
+        }
+        body, html { margin: 0; padding: 0; height: 100vh; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
+        
+        .app-container { display: flex; height: 100vh; width: 100vw; }
+        
+        /* Left: Version Timeline Sidebar */
+        .version-log { 
+            width: var(--sidebar-w); 
+            background: #0d1117; 
+            border-right: 1px solid var(--border); 
+            display: flex; 
+            flex-direction: column; 
+            flex-shrink: 0;
+        }
+        .log-header { padding: 15px; font-size: 11px; font-weight: 800; border-bottom: 1px solid var(--border); color: var(--accent); text-transform: uppercase; letter-spacing: 1.5px; }
+        .log-list { flex: 1; overflow-y: auto; padding: 10px; }
+        .log-item { 
+            padding: 12px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            margin-bottom: 10px; 
+            border: 1px solid transparent;
+            background: rgba(255,255,255,0.02);
+            transition: 0.2s ease;
+        }
+        .log-item:hover { background: rgba(0,212,255,0.05); border-color: rgba(0,212,255,0.2); }
+        .log-item.active { background: rgba(0,212,255,0.1); border-color: var(--accent); }
+        .log-v { font-size: 11px; font-weight: bold; color: var(--accent); display: block; }
+        .log-p { font-size: 10px; color: #8b949e; display: block; margin-top: 5px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+        /* Middle: Editor/Chat */
+        .editor-side { flex: 1; display: flex; flex-direction: column; border-right: 1px solid var(--border); min-width: 400px; }
+        .app-header { background: var(--panel); padding: 12px 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .version-badge { background: #1a202e; color: var(--accent); padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; border: 1px solid var(--accent); box-shadow: 0 0 10px rgba(0,212,255,0.1); }
+
+        .file-bar { background: var(--panel); display: flex; padding: 8px 10px 0 10px; gap: 4px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+        .file-tab { padding: 8px 16px; background: #212631; border-radius: 6px 6px 0 0; font-size: 12px; cursor: pointer; color: #8b949e; white-space: nowrap; border: 1px solid transparent; }
+        .file-tab.active { background: var(--code-bg); color: var(--accent); border: 1px solid var(--border); border-bottom: 1px solid var(--code-bg); }
+        
+        #code-display { flex: 1; background: var(--code-bg); padding: 20px; overflow: auto; font-family: 'Fira Code', monospace; font-size: 13px; white-space: pre-wrap; margin: 0; color: #d1d5db; line-height: 1.6; }
+        
+        .chat-area { background: var(--panel); padding: 15px; border-top: 1px solid var(--border); }
+        #aiInput { width: 100%; height: 70px; background: #0d1117; border: 1px solid var(--border); border-radius: 8px; padding: 12px; color: white; resize: none; box-sizing: border-box; margin-bottom: 10px; outline: none; transition: border 0.2s; }
+        #aiInput:focus { border-color: var(--accent); }
+        
+        .controls { display: flex; flex-direction: column; gap: 10px; }
+        .control-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        
+        button, select { background: #212631; color: white; border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+        button:hover { background: #2d334a; }
+        button:disabled { opacity: 0.2; cursor: not-allowed; }
+        #sendMsg { background: var(--accent); color: #0b0f1a; font-weight: 800; border: none; flex: 1; }
+        #sendMsg:hover { background: #00b8e6; }
+
+        /* Right: Preview & Console */
+        .preview-side { width: 40%; display: flex; flex-direction: column; background: #111; }
+        .preview-toolbar { background: var(--toolbar); padding: 8px 15px; display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); }
+        
+        .iframe-container { flex: 1; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden; background: #1a1a1a; }
+        iframe { background: white; border: none; width: 100%; height: 100%; transition: width 0.3s, height 0.3s; }
+        iframe.phone { width: 375px; height: 667px; border: 12px solid #333; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+
+        #console-panel { height: 160px; background: #050505; border-top: 1px solid var(--border); overflow-y: auto; font-family: 'Fira Code', monospace; padding: 12px; font-size: 11px; display: none; }
+        .console-entry { border-bottom: 1px solid #111; padding: 5px 0; line-height: 1.4; color: #aaa; }
+        .console-error { color: var(--error); }
+        .console-log { color: #00ff00; }
+
+        #loader { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; text-align: center; background: rgba(11, 15, 26, 0.98); padding: 40px; border-radius: 20px; border: 1px solid var(--accent); box-shadow: 0 0 40px rgba(0,212,255,0.2); }
+    </style>
+</head>
+<body>
+
+<div id="loader">
+    <i class="fas fa-circle-notch fa-spin fa-3x" style="color: var(--accent)"></i>
+    <p style="margin-top:20px; color: white; font-weight: 600; letter-spacing: 1px;">EVOLVING CODEBASE...</p>
+</div>
+
+<div class="app-container">
+    <div class="version-log">
+        <div class="log-header">Timeline History</div>
+        <div class="log-list" id="logList"></div>
+    </div>
+
+    <div class="editor-side">
+        <div class="app-header">
+            <span style="font-weight:800; font-size: 14px; letter-spacing: 0.5px;">WHIZY ARCHITECT <span style="color:var(--accent)">PRO</span></span>
+            <div id="versionDisplay" class="version-badge">v1.0.0</div>
+        </div>
+        <div class="file-bar" id="fileBar"></div>
+        <pre id="code-display"></pre>
+        
+        <div class="chat-area">
+            <textarea id="aiInput" placeholder="Describe a feature or fix (e.g., 'Make the header sticky and blue')"></textarea>
+            <div class="controls">
+                <div class="control-row">
+                    <div style="display:flex; gap:5px; flex:1">
+                        <select id="modelSelect" style="flex:1">
+                            <optgroup label="Core Engines" id="modelGroup">
+                                <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+                                <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout 17B</option>
+                                <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick 17B</option>
+                                <option value="openai/gpt-oss-120b">GPT OSS 120B</option>
+                                <option value="moonshotai/kimi-k2-instruct-0905">Kimi K2 Instruct</option>
+                            </optgroup>
+                        </select>
+                        <button id="addModelBtn" title="Inject Custom Model ID"><i class="fas fa-plus"></i></button>
+                    </div>
+                    <span id="statusLabel" style="font-size:10px; opacity:0.6; font-weight:bold">Syncing...</span>
+                </div>
+
+                <div class="control-row">
+                    <div style="display:flex; gap:5px;">
+                        <button id="undoBtn" title="Undo"><i class="fas fa-arrow-left"></i></button>
+                        <button id="redoBtn" title="Redo"><i class="fas fa-arrow-right"></i></button>
+                        <button id="regenerateBtn" title="Regenerate Last Build"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                    <div style="display:flex; gap:5px;">
+                        <button id="resetBtn" title="Hard Reset"><i class="fas fa-trash-alt"></i></button>
+                        <button id="downloadBtn" title="Download Source"><i class="fas fa-download"></i></button>
+                    </div>
+                    <button id="sendMsg">EXECUTE BUILD</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="preview-side">
+        <div class="preview-toolbar">
+            <div style="display:flex; gap:6px;">
+                <button id="viewDesktop" title="Desktop View"><i class="fas fa-desktop"></i></button>
+                <button id="viewPhone" title="Phone View"><i class="fas fa-mobile-alt"></i></button>
+                <button id="reloadBtn" title="Force Refresh"><i class="fas fa-sync"></i></button>
+            </div>
+            <div style="display:flex; gap:6px;">
+                <button id="toggleConsole" title="Toggle Console"><i class="fas fa-terminal"></i></button>
+                <button id="fullscreenBtn" title="Fullscreen Preview"><i class="fas fa-expand"></i></button>
+            </div>
+        </div>
+        <div class="iframe-container">
+            <iframe id="livePreview"></iframe>
+        </div>
+        <div id="console-panel"></div>
+    </div>
+</div>
+
+<script>
+    const API_KEYS_URL = "https://groq-api-keys.pages.dev/apikeys.txt";
+    
+    // Initial State
+    let files = {
+        "index.html": "<!DOCTYPE html>\n<html>\n<head>\n  <title>Whizy Project</title>\n</head>\n<body>\n  <h1>Welcome to Version 1.0.0</h1>\n  <p>Describe your vision in the prompt box to begin the build process.</p>\n</body>\n</html>",
+        "style.css": "body {\n  background: #0b0f1a;\n  color: white;\n  font-family: 'Inter', sans-serif;\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  justify-content: center;\n  height: 90vh;\n  margin: 0;\n  text-align: center;\n}",
+        "script.js": "console.log('Whizy Architect: Ready to build.');"
+    };
+    
+    let currentFile = "index.html";
+    let apiKeys = [];
+    let keyIdx = 0;
+    
+    // Versioning & Time Travel History
+    let history = [{
+        files: JSON.parse(JSON.stringify(files)),
+        version: "1.0.0",
+        prompt: "Project Initialized"
+    }];
+    let historyIndex = 0;
+
+    const ui = {
+        code: document.getElementById("code-display"),
+        input: document.getElementById("aiInput"),
+        send: document.getElementById("sendMsg"),
+        preview: document.getElementById("livePreview"),
+        console: document.getElementById("console-panel"),
+        fileBar: document.getElementById("fileBar"),
+        status: document.getElementById("statusLabel"),
+        loader: document.getElementById("loader"),
+        model: document.getElementById("modelSelect"),
+        vDisplay: document.getElementById("versionDisplay"),
+        logList: document.getElementById("logList")
+    };
+
+    const consoleProxy = `<script>(function(){const s=(t,m)=>window.parent.postMessage({type:t,msg:m},'*');console.log=(...a)=>{s('log',a.join(' '));};console.error=(...a)=>{s('error',a.join(' '));};window.onerror=(m)=>{s('error',m);};})();<\/script>`;
+
+    async function loadKeys() {
+        try {
+            const r = await fetch(API_KEYS_URL);
+            if (!r.ok) throw new Error("Key source unreachable");
+            const t = await r.text();
+            apiKeys = t.split('\n').map(k => k.trim()).filter(k => k.length > 5);
+            ui.status.innerText = `NODES: ${apiKeys.length}`;
+            console.log(`System: ${apiKeys.length} nodes operational.`);
+        } catch(e) { 
+            ui.status.innerText = "OFFLINE";
+            console.error("System: Critical key sync error.");
+        }
+    }
+
+    function updateUI(newBuildPrompt = null) {
+        // Create new history entry if this is a fresh build
+        if (newBuildPrompt) {
+            const lastV = history[history.length - 1].version.split('.');
+            const newV = `${lastV[0]}.${lastV[1]}.${parseInt(lastV[2]) + 1}`;
+            
+            history = history.slice(0, historyIndex + 1);
+            history.push({
+                files: JSON.parse(JSON.stringify(files)),
+                version: newV,
+                prompt: newBuildPrompt
+            });
+            historyIndex = history.length - 1;
+        }
+
+        // Sync local variables to current history index
+        const activeState = history[historyIndex];
+        files = JSON.parse(JSON.stringify(activeState.files));
+        ui.vDisplay.innerText = `v${activeState.version}`;
+        
+        // Render File Tabs
+        ui.fileBar.innerHTML = Object.keys(files).map(f => 
+            `<div class="file-tab ${f === currentFile ? 'active' : ''}" onclick="switchFile('${f}')">${f}</div>`
+        ).join('');
+        
+        // Render Code
+        ui.code.textContent = files[currentFile];
+        
+        // Render Preview
+        let combined = files["index.html"]
+            .replace("</head>", `<style>${files["style.css"]}</style></head>`)
+            .replace("</body>", `${consoleProxy}<script>${files["script.js"]}<\/script></body>`);
+        ui.preview.srcdoc = combined;
+
+        // Render Version Log Sidebar
+        ui.logList.innerHTML = history.map((h, i) => `
+            <div class="log-item ${i === historyIndex ? 'active' : ''}" onclick="jumpToHistory(${i})">
+                <span class="log-v">Version ${h.version}</span>
+                <span class="log-p">${h.prompt}</span>
+            </div>
+        `).reverse().join('');
+
+        // Button State Logic
+        document.getElementById("undoBtn").disabled = historyIndex <= 0;
+        document.getElementById("redoBtn").disabled = historyIndex >= history.length - 1;
+        document.getElementById("regenerateBtn").disabled = historyIndex === 0;
+    }
+
+    window.switchFile = (n) => { currentFile = n; updateUI(); };
+    window.jumpToHistory = (i) => { historyIndex = i; updateUI(); };
+
+    // Build Engine
+    async function build(isRegen = false) {
+        const promptText = isRegen ? history[historyIndex].prompt : ui.input.value.trim();
+        
+        if (!promptText) {
+            alert("Please enter a prompt.");
+            return;
+        }
+        if (apiKeys.length === 0) {
+            alert("No API keys found. Please check key source.");
+            return;
+        }
+
+        ui.loader.style.display = "block";
+        ui.send.disabled = true;
+        
+        try {
+            const key = apiKeys[keyIdx];
+            keyIdx = (keyIdx + 1) % apiKeys.length;
+
+            const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` },
+                body: JSON.stringify({
+                    model: ui.model.value,
+                    messages: [
+                        { role: "system", content: "You are a surgical web architect. Return ONLY a JSON object with 'index.html', 'style.css', and 'script.js' keys containing the full updated code." },
+                        { role: "user", content: `CONTEXT:\n${JSON.stringify(files)}\n\nREQUEST: ${promptText}` }
+                    ],
+                    response_format: { type: "json_object" }
+                })
+            });
+
+            if (!res.ok) throw new Error("API Node Rejected Request");
+
+            const data = await res.json();
+            const result = JSON.parse(data.choices[0].message.content);
+            
+            files = { ...files, ...result };
+            if (!isRegen) ui.input.value = "";
+            updateUI(promptText);
+        } catch (err) {
+            console.error("BUILD ERROR:", err);
+            alert("Build failed. Check the internal console for details.");
+        } finally {
+            ui.loader.style.display = "none";
+            ui.send.disabled = false;
+        }
+    }
+
+    // Button Listeners
+    ui.send.onclick = () => build(false);
+    document.getElementById("regenerateBtn").onclick = () => build(true);
+    document.getElementById("undoBtn").onclick = () => { if(historyIndex > 0) jumpToHistory(historyIndex - 1); };
+    document.getElementById("redoBtn").onclick = () => { if(historyIndex < history.length - 1) jumpToHistory(historyIndex + 1); };
+    
+    document.getElementById("addModelBtn").onclick = () => {
+        const m = prompt("Enter Groq Model ID (e.g., deepseek-r1-distill-llama-70b):");
+        if(m) {
+            const opt = document.createElement("option");
+            opt.value = m; opt.textContent = "Custom: " + m;
+            document.getElementById("modelGroup").appendChild(opt);
+            ui.model.value = m;
+        }
+    };
+
+    document.getElementById("toggleConsole").onclick = () => {
+        ui.console.style.display = ui.console.style.display === "none" ? "block" : "none";
+    };
+    document.getElementById("viewPhone").onclick = () => ui.preview.classList.add("phone");
+    document.getElementById("viewDesktop").onclick = () => ui.preview.classList.remove("phone");
+    document.getElementById("reloadBtn").onclick = () => updateUI();
+    document.getElementById("fullscreenBtn").onclick = () => ui.preview.requestFullscreen();
+    document.getElementById("resetBtn").onclick = () => {
+        if(confirm("Factory reset? This clears all versions and progress.")) location.reload();
+    };
+
+    // Download functionality
+    document.getElementById("downloadBtn").onclick = () => {
+        const zip = new JSZip();
+        Object.keys(files).forEach(f => zip.file(f, files[f]));
+        zip.generateAsync({type:"blob"}).then(content => {
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(content);
+            a.download = `whizy-project-v${history[historyIndex].version}.zip`;
+            a.click();
+        });
+    };
+
+    // Console Event Handling
+    window.addEventListener('message', (e) => {
+        if (!e.data.type) return;
+        const div = document.createElement('div');
+        div.className = `console-entry console-${e.data.type}`;
+        div.innerText = `> ${e.data.msg}`;
+        ui.console.appendChild(div);
+        ui.console.scrollTop = ui.console.scrollHeight;
+    });
+
+    // Start App
+    window.onload = async () => { 
+        await loadKeys(); 
+        updateUI(); 
+    };
+</script>
+</body>
+</html>

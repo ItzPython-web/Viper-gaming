@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>whizy ai</title>
+    <link rel="stylesheet" href="assets/css/project.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+</head>
+<body>
+<div id="amGlow"></div>
+
+<div id="presentationLogos" class="logo-container">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/ChatGPT-Logo.svg/1200px-ChatGPT-Logo.svg.png" class="logo-item" style="--top: 25%; --left: 25%; --angle: -135deg;">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Google_Gemini_icon_2025.svg/960px-Google_Gemini_icon_2025.svg.png" class="logo-item" style="--top: 25%; --left: 75%; --angle: 45deg;">
+    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/a/aa/Microsoft_Copilot_Icon.svg/250px-Microsoft_Copilot_Icon.svg.png" class="logo-item" style="--top: 75%; --left: 25%; --angle: 135deg;">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b0/Claude_AI_symbol.svg" class="logo-item" style="--top: 75%; --left: 75%; --angle: -45deg;">
+</div>
+
+<div class="chat-header">
+    <div class="header-left">
+        <span class="header-title">whizy AI</span>
+        <div class="chat-options">
+            <div class="selector" id="modelSelector">
+                <span class="selector-selected">Models</span>
+                <i class="fas fa-chevron-down" style="font-size:0.7em; margin-left:8px;"></i>
+            </div>
+<div class="selector-options" id="modelOptions">
+    <!-- Frontier Logic & Reasoning -->
+    <div data-value="openai/gpt-5.2-pro">GPT-5.2 Pro</div>
+    <div data-value="anthropic/claude-4.5-opus">Claude 4.5 Opus</div>
+    <div data-value="google/gemini-3-pro">Gemini 3 Pro</div>
+    
+    <!-- Coding & Agentic Performance -->
+    <div data-value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</div>
+    <div data-value="zhipuai/glm-4.7">GLM-4.7</div>
+    <div data-value="deepseek/deepseek-v3.2-terminus">DeepSeek V3.2 Terminus</div>
+
+    <!-- Math & Scientific Analysis -->
+    <div data-value="moonshotai/kimi-k2-thinking-0905">Kimi K2 Thinking</div>
+    <div data-value="alibaba/qwen3-235b-a22b">Qwen3 235B</div>
+
+    <!-- Speed & Efficiency -->
+    <div data-value="google/gemini-3-flash">Gemini 3 Flash</div>
+    <div data-value="openai/gpt-oss-120b">GPT-OSS 120B</div>
+</div>
+
+        </div>
+    </div>
+    <button class="new-chat-btn" onclick="window.location.reload()">
+        <i class="fas fa-edit"></i>
+    </button>
+</div>
+
+<div class="chat-body" id="chatBody">
+    <div class="chat-content-inner">
+        <div class="branding" id="branding">
+            <div class="brand-icon"><i class="fas fa-robot"></i></div>
+            <h1>How can I help you?</h1>
+        </div>
+    </div>
+</div>
+
+<div class="input-area-container">
+    <svg style="visibility: hidden; position: absolute;" width="0" height="0">
+        <defs>
+            <filter id="goo">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9" result="goo" />
+                <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+            </filter>
+        </defs>
+    </svg>
+    <div class="chat-input-wrapper">
+        <div class="input-row">
+            <button id="uploadBtn" class="action-icon-btn"><i class="fas fa-paperclip"></i></button>
+            <button id="micBtn" class="action-icon-btn"><i class="fas fa-microphone" id="micIcon"></i></button>
+            <button class="call-btn" id="startCallBtn"><i class="fas fa-phone"></i></button>
+            <textarea id="aiInput" placeholder="Message whizy ai..." rows="1"></textarea>
+            <button id="sendMsg" disabled><i class="fas fa-arrow-up"></i></button>
+        </div>
+    </div>
+    <p class="footer-disclaimer">whizy can make mistakes. Check important info.</p>
+</div>
+
+<div id="voiceOverlay" class="voice-overlay">
+    <button id="closeCallBtn" class="close-call-btn">&times;</button>
+    <div class="voice-orb-container">
+        <div id="voiceOrb" class="voice-orb"></div>
+        <div id="statusLabel">Hold to Talk</div>
+    </div>
+</div>
+
+<script src="assets/js/project.js"></script>
+</body>
+</html>

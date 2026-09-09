@@ -120,7 +120,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         try {
             const formData = new FormData();
             formData.append("file", blob, "recording.webm");
-            formData.append("model", "whisper-large-v3-turbo");
+            formData.append("model", "whisper-large-v3");
 
             const sttRes = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
                 method: "POST",
@@ -145,7 +145,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         try {
             const formData = new FormData();
             formData.append("file", blob, "recording.webm");
-            formData.append("model", "whisper-large-v3-turbo");
+            formData.append("model", "whisper-large-v3");
 
             const sttRes = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
                 method: "POST",

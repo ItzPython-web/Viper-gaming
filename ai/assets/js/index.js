@@ -329,63 +329,182 @@ document.addEventListener("DOMContentLoaded", async () => {
     // --- Chat Logic ---
     async function handleSend(isRegenerate = false) {
         if (isFetching) return;
+
         let text = elements.aiInput.value.trim();
         let lastImg = currentImageBase64;
 
         if (isRegenerate) {
             if (messageHistory.length < 2) return;
-            messageHistory.pop();
+
+            // Remove the previous assistant reply from history and UI.
+            if (messageHistory[messageHistory.length - 1]?.role === "assistant") {
+                messageHistory.pop();
+            }
+
             const aiMsgs = elements.chatBody.querySelectorAll(".ai-message");
-            if (aiMsgs.length > 0) aiMsgs[aiMsgs.length - 1].remove();
+            if (aiMsgs.length > 0) {
+                aiMsgs[aiMsgs.length - 1].remove();
+            }
+
             const lastUser = messageHistory[messageHistory.length - 1];
-            text = typeof lastUser.content === 'string' ? lastUser.content : lastUser.content[0].text;
+            if (!lastUser || lastUser.role !== "user") return;
+
+            text = typeof lastUser.content === "string"
+                ? lastUser.content
+                : (lastUser.content?.[0]?.text || "");
         } else {
             if (!text && !currentImageBase64) return;
-            if (elements.branding) elements.branding.style.display = "none";
+
+            if (elements.branding) {
+                elements.branding.style.display = "none";
+            }
+
             renderUserMessage(text, currentImageBase64);
-            messageHistory.push({ 
-                role: "user", 
-                content: currentImageBase64 ? [{type:"text", text: text || "Analyze this image"}, {type:"image_url", image_url:{url: currentImageBase64}}] : text 
+
+            messageHistory.push({
+                role: "user",
+                content: currentImageBase64
+                    ? [
+                        { type: "text", text: text || "Analyze this image" },
+                        { type: "image_url", image_url: { url: currentImageBase64 } }
+                    ]
+                    : text
             });
+
             clearInputArea();
         }
 
         const aiDiv = renderAiContainer();
         const aiTextContainer = aiDiv.querySelector(".ai-text");
         isFetching = true;
+
         let fullReply = "";
 
         try {
+            const apiKey = getNextApiKey();
+
             const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                 method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${getNextApiKey()}` },
-                body: JSON.stringify({ model: lastImg ? PRIMARY_VISION_MODEL : modelSourceValue, messages: [{ role: "system", content: currentSystemPrompt }, ...messageHistory], stream: true })
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: lastImg ? PRIMARY_VISION_MODEL : modelSourceValue,
+                    messages: [
+                        { role: "system", content: currentSystemPrompt },
+                        ...messageHistory
+                    ],
+                    stream: true
+                })
             });
 
+            // Always show the actual API error instead of silently failing.
+            if (!res.ok) {
+                let errorMessage = `API error ${res.status}`;
+                try {
+                    const errorData = await res.json();
+                    errorMessage =
+                        errorData?.error?.message ||
+                        errorData?.message ||
+                        errorMessage;
+                } catch (_) {}
+
+                throw new Error(errorMessage);
+            }
+
+            if (!res.body) {
+                throw new Error("The AI response did not contain a readable stream.");
+            }
+
             const reader = res.body.getReader();
-            const decoder = new TextDecoder();
-            while (true) {
+            const decoder = new TextDecoder("utf-8");
+
+            // SSE data can be split across network chunks, so keep a buffer.
+            let buffer = "";
+
+            const handleSSELine = (line) => {
+                const trimmed = line.trim();
+
+                if (!trimmed || !trimmed.startsWith("data:")) {
+                    return false;
+                }
+
+                const data = trimmed.slice(5).trim();
+
+                if (!data || data === "[DONE]") {
+                    return data === "[DONE]";
+                }
+
+                try {
+                    const parsed = JSON.parse(data);
+                    const content = parsed?.choices?.[0]?.delta?.content;
+
+                    if (content) {
+                        fullReply += content;
+                        aiTextContainer.innerHTML = window.marked
+                            ? marked.parse(fullReply)
+                            : fullReply;
+
+                        elements.chatBody.scrollTo(
+                            0,
+                            elements.chatBody.scrollHeight
+                        );
+                    }
+                } catch (parseError) {
+                    // Leave incomplete JSON in the buffer rather than losing text.
+                    return false;
+                }
+
+                return false;
+            };
+
+            let finished = false;
+
+            while (!finished) {
                 const { done, value } = await reader.read();
+
                 if (done) break;
-                const lines = decoder.decode(value).split("\n");
+
+                buffer += decoder.decode(value, { stream: true });
+
+                const lines = buffer.split(/\r?\n/);
+                buffer = lines.pop() || "";
+
                 for (const line of lines) {
-                    const msg = line.replace(/^data: /, "").trim();
-                    if (msg === "" || msg === "[DONE]") continue;
-                    try {
-                        const content = JSON.parse(msg).choices[0].delta.content;
-                        if (content) {
-                            fullReply += content;
-                            aiTextContainer.innerHTML = marked.parse(fullReply);
-                            elements.chatBody.scrollTo(0, elements.chatBody.scrollHeight);
-                        }
-                    } catch (e) {}
+                    if (handleSSELine(line)) {
+                        finished = true;
+                        break;
+                    }
                 }
             }
-            messageHistory.push({ role: "assistant", content: fullReply });
+
+            // Process any final buffered SSE line.
+            if (!finished && buffer.trim()) {
+                handleSSELine(buffer);
+            }
+
+            if (!fullReply.trim()) {
+                throw new Error("The AI returned an empty response.");
+            }
+
+            messageHistory.push({
+                role: "assistant",
+                content: fullReply
+            });
+
             addAiTools(aiDiv, fullReply);
-            updateMemory(); // Write to memory after text response
-        } catch (e) { aiTextContainer.textContent = "Error: " + e.message; }
-        finally { isFetching = false; }
+            updateMemory();
+
+        } catch (e) {
+            console.error("Chat request failed:", e);
+
+            // Remove the empty assistant message if the request failed.
+            aiTextContainer.textContent = "Error: " + e.message;
+
+        } finally {
+            isFetching = false;
+        }
     }
 
     // --- UI Helpers ---
@@ -430,10 +549,26 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function loadKeys() {
         try {
-            const res = await fetch(API_KEYS_URL);
+            const res = await fetch(API_KEYS_URL, { cache: "no-store" });
+
+            if (!res.ok) {
+                throw new Error(`Could not load API keys (${res.status})`);
+            }
+
             const txt = await res.text();
-            apiKeys = txt.split(/\r?\n/).map(l => l.trim()).filter(l => l);
-        } catch (e) {}
+
+            apiKeys = txt
+                .split(/\r?\n/)
+                .map(line => line.trim())
+                .filter(line => line && !line.startsWith("#"));
+
+            if (!apiKeys.length) {
+                throw new Error("No API keys were returned.");
+            }
+        } catch (e) {
+            console.error("API key loading failed:", e);
+            apiKeys = [];
+        }
     }
 
     function getNextApiKey() {

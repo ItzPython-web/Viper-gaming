@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -45,6 +46,7 @@
             fill="none"
             stroke="currentColor"
             stroke-width="2"
+            aria-hidden="true"
           >
             <circle cx="11" cy="11" r="7"></circle>
             <line
@@ -58,7 +60,7 @@
           <input
             class="search__input"
             id="searchInput"
-            type="text"
+            type="search"
             placeholder="Search mice, keyboards, mousepads..."
             autocomplete="off"
           >
@@ -75,6 +77,7 @@
               fill="none"
               stroke="currentColor"
               stroke-width="2"
+              aria-hidden="true"
             >
               <line x1="5" y1="12" x2="19" y2="12"></line>
               <polyline points="12 5 19 12 12 19"></polyline>
@@ -82,8 +85,16 @@
           </button>
         </form>
 
-        <div class="search__status" id="searchStatus"></div>
-        <div class="search__results" id="searchResults"></div>
+        <div
+          class="search__status"
+          id="searchStatus"
+          aria-live="polite"
+        ></div>
+
+        <div
+          class="search__results"
+          id="searchResults"
+        ></div>
       </div>
     </section>
 
@@ -144,14 +155,7 @@
     Viper Gaming
   </footer>
 
-  <!-- Load data first -->
-  <script src="js/products-data.js" defer></script>
-
-  <!-- Load VIPER after product data -->
   <script src="js/index.js" defer></script>
-
-  <!-- Search after VIPER -->
-  <script src="js/search.js" defer></script>
-
 </body>
 </html>
+```

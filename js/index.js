@@ -80,8 +80,18 @@ const VIPER = (() => {
 
   function swatchesHtml(colors) {
     return (colors || [])
-      .map((c) => `<span class="swatch" style="background:${c}"></span>`)
+      .map((c) => `<span class="swatch">${c}</span>`)
       .join("");
+  }
+
+  function detailRow(label, value) {
+    if (!value) return "";
+    return `
+      <div class="detail__row">
+        <p class="detail__row-label">${label}</p>
+        <p class="detail__row-value">${value}</p>
+      </div>
+    `;
   }
 
   async function renderProductDetail() {
@@ -142,8 +152,13 @@ const VIPER = (() => {
             <p class="detail__label">Theme</p>
             <div class="detail__swatches">
               ${swatchesHtml(product.colors)}
-              <span class="detail__theme-name">${product.theme || ""}</span>
             </div>
+            <p class="detail__theme-name">${product.theme || ""}</p>
+          </div>
+          <div class="detail__specs">
+            ${detailRow("Maker", product.maker)}
+            ${detailRow("Origin", product.origin)}
+            ${detailRow("Material", product.material)}
           </div>
           <div class="detail__buy">
             <span class="detail__price">$${Number(product.price).toFixed(2)}</span>

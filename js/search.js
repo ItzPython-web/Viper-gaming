@@ -19,16 +19,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let isSearching = false;
 
+  const MAX_IMAGE_DIMENSION = 220;
+  const IMAGE_JPEG_QUALITY = 0.6;
+
   function imageToDataUrl(path) {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
         try {
+          const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(img.naturalWidth, img.naturalHeight));
+          const w = Math.max(1, Math.round(img.naturalWidth * scale));
+          const h = Math.max(1, Math.round(img.naturalHeight * scale));
           const canvas = document.createElement("canvas");
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
-          canvas.getContext("2d").drawImage(img, 0, 0);
-          resolve(canvas.toDataURL("image/png"));
+          canvas.width = w;
+          canvas.height = h;
+          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL("image/jpeg", IMAGE_JPEG_QUALITY));
         } catch (err) {
           reject(err);
         }
@@ -98,7 +104,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ];
 
     let imagesSent = 0;
-    const MAX_IMAGES = 3;
+    const MAX_IMAGES = 2;
 
     for (const p of products) {
       content.push({
@@ -133,6 +139,9 @@ document.addEventListener("DOMContentLoaded", () => {
       })
     });
 
+    if (res.status === 429) {
+      throw new Error("rate_limited");
+    }
     if (!res.ok) throw new Error("Search request failed");
 
     const data = await res.json();
@@ -160,7 +169,11 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       await runSearch(query);
     } catch (err) {
-      setStatus("Search failed. Try again.", "is-error");
+      if (err && err.message === "rate_limited") {
+        setStatus("Search is busy right now. Wait a moment and try again.", "is-error");
+      } else {
+        setStatus("Search failed. Try again.", "is-error");
+      }
       closeResults();
     } finally {
       isSearching = false;

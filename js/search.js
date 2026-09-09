@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const GROQ_API_KEY = "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";
   const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-  const VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+  const VISION_MODEL = "qwen/qwen3.6-27b";
 
   const SEARCH_SYSTEM_PROMPT =
     "You are the product search engine for Viper Gaming, a store that sells gaming mice, keyboards, and mousepads. " +
@@ -19,14 +19,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let isSearching = false;
 
-  async function imageToDataUrl(path) {
-    const res = await fetch(path);
-    const blob = await res.blob();
+  function imageToDataUrl(path) {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          canvas.getContext("2d").drawImage(img, 0, 0);
+          resolve(canvas.toDataURL("image/png"));
+        } catch (err) {
+          reject(err);
+        }
+      };
+      img.onerror = reject;
+      img.src = path;
     });
   }
 
@@ -51,7 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
     resultsEl.innerHTML = products
       .map(
         (p) => `
-        <a class="search__result" href="/products/?id=${p.id}">
+        <a class="search__result" href="${VIPER.asset("products/index.html?id=" + p.id)}">
           <img src="${VIPER.asset(p.thumbnail)}" alt="${p.name}">
           <div>
             <p class="search__result-name">${p.name}</p>
@@ -89,17 +97,22 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     ];
 
+    let imagesSent = 0;
+    const MAX_IMAGES = 3;
+
     for (const p of products) {
       content.push({
         type: "text",
         text: `id: ${p.id}\nname: ${p.name}\ncategory: ${p.category}\ntype: ${p.type}\ntheme: ${p.theme}\ncolors: ${(p.colors || []).join(", ")}\ndescription: ${p.description}\nprice: $${p.price}`
       });
+      if (imagesSent >= MAX_IMAGES) continue;
       try {
         const dataUrl = await imageToDataUrl(VIPER.asset(p.thumbnail));
         content.push({
           type: "image_url",
           image_url: { url: dataUrl }
         });
+        imagesSent += 1;
       } catch (e) {
         // skip image if it can't be loaded
       }

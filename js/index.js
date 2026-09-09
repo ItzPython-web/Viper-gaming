@@ -1,15 +1,14 @@
 const VIPER = (() => {
-  const PRODUCTS_URL = "/json/products.json";
+  const BASE = window.VIPER_BASE || "";
 
   function asset(path) {
     if (!path) return "";
-    return "/" + path.replace(/^\/+/, "");
+    return BASE + path.replace(/^\/+/, "");
   }
 
   async function loadProducts() {
-    const res = await fetch(PRODUCTS_URL);
-    if (!res.ok) throw new Error("Could not load product data.");
-    const data = await res.json();
+    const data = window.VIPER_PRODUCTS;
+    if (!data) throw new Error("Could not load product data.");
     return data.products || [];
   }
 
@@ -22,7 +21,7 @@ const VIPER = (() => {
 
   function productCard(product) {
     return `
-      <a class="card" href="/products/?id=${product.id}">
+      <a class="card" href="${asset("products/index.html?id=" + product.id)}">
         <div class="card__media">
           <img src="${asset(product.thumbnail)}" alt="${product.name}" loading="lazy">
         </div>
@@ -111,8 +110,17 @@ const VIPER = (() => {
     mount.innerHTML = `
       <div class="product-detail">
         <div class="gallery">
-          <div class="gallery__main">
+          <div class="gallery__main" id="galleryMainWrap">
             <img id="galleryMain" src="${asset(images[0])}" alt="${product.name}">
+            <div class="gallery__zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="7"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                <line x1="11" y1="8" x2="11" y2="14"></line>
+                <line x1="8" y1="11" x2="14" y2="11"></line>
+              </svg>
+              Zoom
+            </div>
           </div>
           <div class="gallery__thumbs">
             ${images
@@ -143,9 +151,43 @@ const VIPER = (() => {
           </div>
         </div>
       </div>
+      <div class="lightbox" id="lightbox">
+        <button class="lightbox__close" id="lightboxClose" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+        <img id="lightboxImg" src="" alt="${product.name}">
+      </div>
     `;
 
     const mainImg = document.getElementById("galleryMain");
+    const mainWrap = document.getElementById("galleryMainWrap");
+    const lightbox = document.getElementById("lightbox");
+    const lightboxImg = document.getElementById("lightboxImg");
+    const lightboxClose = document.getElementById("lightboxClose");
+
+    function openLightbox() {
+      lightboxImg.src = mainImg.src;
+      lightbox.classList.add("is-open");
+    }
+
+    function closeLightbox() {
+      lightbox.classList.remove("is-open");
+    }
+
+    if (mainWrap) mainWrap.addEventListener("click", openLightbox);
+    if (lightboxClose) lightboxClose.addEventListener("click", (e) => { e.stopPropagation(); closeLightbox(); });
+    if (lightbox) {
+      lightbox.addEventListener("click", (e) => {
+        if (e.target === lightbox) closeLightbox();
+      });
+    }
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeLightbox();
+    });
+
     mount.querySelectorAll(".gallery__thumb").forEach((thumb) => {
       thumb.addEventListener("click", () => {
         mount.querySelectorAll(".gallery__thumb").forEach((t) => t.classList.remove("is-active"));

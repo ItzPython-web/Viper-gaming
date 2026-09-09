@@ -40,26 +40,124 @@ document.addEventListener("DOMContentLoaded", async () => {
         transcriptDiv: document.getElementById("liveTranscript")
     };
 
-    // --- TTS Cleaning Helper ---
+    // --- TTS Helpers ---
     function cleanTextForTTS(text) {
-        return text
-            .replace(/[#*`_~]/g, '') 
-            .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') 
-            .replace(/!\[([^\]]*)\]\([^\)]+\)/g, '') 
+        if (!text) return "";
+
+        return String(text)
+            // Remove fenced code blocks completely
+            .replace(/```[\s\S]*?```/g, " ")
+            // Remove markdown images
+            .replace(/!\[[^\]]*\]\([^)]+\)/g, " ")
+            // Convert markdown links to their visible text
+            .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+            // Remove markdown formatting characters
+            .replace(/[#*_~>]/g, " ")
+            // Remove HTML tags
+            .replace(/<[^>]*>/g, " ")
+            // Prevent URLs from being spoken
+            .replace(/https?:\/\/\S+/gi, " ")
+            // Collapse whitespace
+            .replace(/\s+/g, " ")
             .trim();
     }
 
-    // --- Voice Selection Helper ---
     function getMaleVoice() {
         const voices = window.speechSynthesis.getVoices();
-        const maleVoice = voices.find(v => 
-            v.name.includes("Google US English") || 
-            v.name.includes("Microsoft David") || 
-            v.name.includes("Male") ||
-            v.name.includes("James") ||
-            v.name.includes("Daniel")
-        );
-        return maleVoice || voices[0];
+
+        const preferred = [
+            "Microsoft David",
+            "Microsoft Guy",
+            "Google US English",
+            "Daniel",
+            "James"
+        ];
+
+        for (const name of preferred) {
+            const voice = voices.find(v =>
+                v.name.toLowerCase().includes(name.toLowerCase()) &&
+                v.lang.toLowerCase().startsWith("en")
+            );
+            if (voice) return voice;
+        }
+
+        return voices.find(v => v.lang && v.lang.toLowerCase().startsWith("en")) || voices[0] || null;
+    }
+
+    let activeTTS = null;
+    let ttsGeneration = 0;
+
+    function stopTTS() {
+        ttsGeneration++;
+        activeTTS = null;
+        window.speechSynthesis.cancel();
+    }
+
+    function speakText(text, onStart = null, onEnd = null) {
+        const cleaned = cleanTextForTTS(text);
+        if (!cleaned) {
+            if (onEnd) onEnd();
+            return;
+        }
+
+        // Cancel anything already speaking so old utterances cannot overlap.
+        stopTTS();
+
+        const generation = ttsGeneration;
+        const voice = getMaleVoice();
+
+        // Split long replies into small utterances. This avoids Chrome/Firefox
+        // speechSynthesis queue glitches that can sound like repeated/echoed audio.
+        const chunks = cleaned.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [cleaned];
+
+        let index = 0;
+        let started = false;
+
+        const speakNext = () => {
+            if (generation !== ttsGeneration || index >= chunks.length) {
+                activeTTS = null;
+                if (onEnd && generation === ttsGeneration) onEnd();
+                return;
+            }
+
+            const chunk = chunks[index++].trim();
+            if (!chunk) {
+                speakNext();
+                return;
+            }
+
+            const utterance = new SpeechSynthesisUtterance(chunk);
+            if (voice) utterance.voice = voice;
+            utterance.lang = voice?.lang || "en-US";
+            utterance.rate = 1;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+
+            utterance.onstart = () => {
+                if (!started) {
+                    started = true;
+                    if (onStart) onStart();
+                }
+            };
+
+            utterance.onend = () => {
+                if (generation === ttsGeneration) {
+                    // Small gap prevents some browsers from replaying the end
+                    // of one utterance when the next one is queued immediately.
+                    setTimeout(speakNext, 20);
+                }
+            };
+
+            utterance.onerror = (event) => {
+                console.warn("TTS error:", event.error);
+                if (generation === ttsGeneration) speakNext();
+            };
+
+            activeTTS = utterance;
+            window.speechSynthesis.speak(utterance);
+        };
+
+        speakNext();
     }
 
     // --- Initialization ---
@@ -90,27 +188,60 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // --- STT Setup ---
+    function getRecorderMimeType() {
+        const types = [
+            "audio/webm;codecs=opus",
+            "audio/webm",
+            "audio/ogg;codecs=opus",
+            "audio/mp4"
+        ];
+
+        return types.find(type => MediaRecorder.isTypeSupported(type)) || "";
+    }
+
     async function setupSTT() {
         try {
+            if (!navigator.mediaDevices?.getUserMedia) {
+                throw new Error("Microphone access is not supported by this browser.");
+            }
+
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
+            const mimeType = getRecorderMimeType();
+
+            mediaRecorder = mimeType
+                ? new MediaRecorder(stream, { mimeType })
+                : new MediaRecorder(stream);
 
             mediaRecorder.ondataavailable = (e) => {
-                if (e.data.size > 0) audioChunks.push(e.data);
+                if (e.data && e.data.size > 0) {
+                    audioChunks.push(e.data);
+                }
             };
 
             mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                audioChunks = []; 
-                
+                if (!audioChunks.length) return;
+
+                const actualType = mediaRecorder.mimeType || mimeType || "audio/webm";
+                const audioBlob = new Blob(audioChunks, { type: actualType });
+                audioChunks = [];
+
                 if (elements.voiceOverlay.style.display === "flex") {
                     await processVoiceCall(audioBlob);
                 } else {
                     await processWhisperTranscription(audioBlob);
                 }
             };
+
+            mediaRecorder.onerror = (event) => {
+                console.error("MediaRecorder error:", event.error);
+                audioChunks = [];
+                elements.micBtn.style.color = "";
+                elements.voiceOrb.classList.remove("listening");
+            };
+
         } catch (e) {
             console.warn("Microphone error:", e);
+            mediaRecorder = null;
         }
     }
 
@@ -184,18 +315,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     function speakCall(text) {
-        window.speechSynthesis.cancel();
-        const cleaned = cleanTextForTTS(text);
-        const utterance = new SpeechSynthesisUtterance(cleaned);
-        utterance.voice = getMaleVoice();
-
-        utterance.onstart = () => elements.voiceOrb.classList.add("speaking");
-        utterance.onend = () => {
-            elements.voiceOrb.classList.remove("speaking");
-            isFetching = false;
-            updateMemory(); // Write to memory after speaking
-        };
-        window.speechSynthesis.speak(utterance);
+        speakText(
+            text,
+            () => elements.voiceOrb.classList.add("speaking"),
+            () => {
+                elements.voiceOrb.classList.remove("speaking");
+                isFetching = false;
+                updateMemory();
+            }
+        );
     }
 
     // --- Chat Logic ---
@@ -283,11 +411,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         tools.className = "ai-tools";
         const copy = createToolBtn('<i class="far fa-copy"></i>', () => navigator.clipboard.writeText(text));
         const tts = createToolBtn('<i class="fas fa-volume-up"></i>', () => {
-            window.speechSynthesis.cancel();
-            const cleaned = cleanTextForTTS(text);
-            const utterance = new SpeechSynthesisUtterance(cleaned);
-            utterance.voice = getMaleVoice();
-            window.speechSynthesis.speak(utterance);
+            speakText(text);
         });
         tools.append(copy, tts);
         container.appendChild(tools);
@@ -313,6 +437,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     function getNextApiKey() {
+        if (!apiKeys.length) {
+            throw new Error("No API keys loaded.");
+        }
+
         const key = apiKeys[apiKeyIndex];
         apiKeyIndex = (apiKeyIndex + 1) % apiKeys.length;
         return key;
@@ -352,36 +480,59 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // --- Listeners ---
     elements.sendMsg.onclick = () => handleSend();
-    elements.aiInput.oninput = () => elements.sendMsg.disabled = !elements.aiInput.value.trim();
+    elements.aiInput.oninput = () => {
+        elements.sendMsg.disabled = !elements.aiInput.value.trim() && !currentImageBase64;
+    };
     elements.aiInput.onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } };
 
     elements.startCallBtn.onclick = () => elements.voiceOverlay.style.display = "flex";
     elements.closeCallBtn.onclick = () => {
         elements.voiceOverlay.style.display = "none";
-        window.speechSynthesis.cancel();
+        stopTTS();
+        elements.voiceOrb.classList.remove("speaking", "listening");
     };
 
-    elements.voiceOrb.onmousedown = () => {
+    elements.voiceOrb.onpointerdown = (e) => {
+        e.preventDefault();
+
         if (!isFetching && mediaRecorder && mediaRecorder.state === "inactive") {
-            window.speechSynthesis.cancel();
+            stopTTS();
             audioChunks = [];
             mediaRecorder.start();
+            elements.voiceOrb.setPointerCapture?.(e.pointerId);
             elements.voiceOrb.classList.add("listening");
+            elements.statusLabel.innerText = "Listening...";
         }
     };
-    window.onmouseup = () => {
+
+    elements.voiceOrb.onpointerup = (e) => {
+        e.preventDefault();
+
         if (mediaRecorder && mediaRecorder.state === "recording") {
             mediaRecorder.stop();
             elements.voiceOrb.classList.remove("listening");
+            elements.statusLabel.innerText = "Thinking...";
         }
     };
 
+    elements.voiceOrb.onpointercancel = () => {
+        if (mediaRecorder && mediaRecorder.state === "recording") {
+            mediaRecorder.stop();
+        }
+        elements.voiceOrb.classList.remove("listening");
+    };
+
     elements.micBtn.onclick = () => {
+        if (!mediaRecorder) {
+            console.warn("Microphone is not ready yet.");
+            return;
+        }
+
         if (mediaRecorder.state === "inactive") {
             audioChunks = [];
             mediaRecorder.start();
             elements.micBtn.style.color = "red";
-        } else {
+        } else if (mediaRecorder.state === "recording") {
             mediaRecorder.stop();
             elements.micBtn.style.color = "";
         }

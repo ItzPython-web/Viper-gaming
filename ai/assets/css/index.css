@@ -1,11 +1,15 @@
 :root {
-    --bg-dark: #0d0d0d;
-    --card-bg: #1a1a1a;
-    --text-main: #ececec;
-    --text-dim: #b4b4b4;
-    --accent: #4a90e2;
-    --border: #333333;
-    --input-bg: #212121;
+    --bg-dark: #050505;
+    --card-bg: #161616;
+    --text-main: #e8e8e8;
+    --text-dim: #9a9a9a;
+    --accent: #c0c0c0;
+    --border: #2e2e2e;
+    --input-bg: #111111;
+    --user-msg-bg: #1c1c1c;
+    --text-primary: #e8e8e8;
+    --border-color: #2e2e2e;
+    --accent-blue: #b8b8b8;
 }
 
 * {
@@ -20,34 +24,93 @@ body {
     color: var(--text-main);
     height: 100vh;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     overflow-x: hidden;
 }
 
-/* Ambient Background Glow */
 #amGlow {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: radial-gradient(circle at 50% -20%, #1a1a2e 0%, transparent 50%);
+    background: radial-gradient(circle at 50% -20%, #1c1c1c 0%, transparent 50%);
     pointer-events: none;
     z-index: -1;
 }
 
-/* Header Styling */
+.sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--card-bg);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 16px 12px;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.new-chat-side-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    color: var(--text-main);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    text-align: left;
+    cursor: pointer;
+    margin-bottom: 16px;
+    transition: background 0.2s;
+}
+.new-chat-side-btn:hover { background: #2a2a2a; }
+
+.chat-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-y: auto;
+}
+
+.chat-list-item {
+    padding: 10px 12px;
+    border-radius: 8px;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.chat-list-item i { font-size: 0.8em; opacity: 0.7; flex-shrink: 0; }
+.chat-list-item:hover { background: rgba(255,255,255,0.06); color: var(--text-main); }
+.chat-list-item.active { background: rgba(192,192,192,0.15); color: #fff; }
+
+.main-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    height: 100vh;
+    overflow: hidden;
+}
+
 .chat-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 12px 20px;
     border-bottom: 1px solid var(--border);
-    background: rgba(13, 13, 13, 0.8);
+    background: rgba(5, 5, 5, 0.8);
     backdrop-filter: blur(10px);
 }
 
 .header-left { display: flex; align-items: center; gap: 15px; }
 .header-title { font-weight: 600; font-size: 1.1rem; }
 
-/* Dropdown Selector */
 .selector {
     background: var(--input-bg);
     padding: 6px 12px;
@@ -65,12 +128,11 @@ body {
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: 8px;
-    display: none; /* Toggle this with JS */
+    display: none;
     flex-direction: column;
     z-index: 100;
 }
 
-/* Main Chat Area */
 .chat-body {
     flex: 1;
     overflow-y: auto;
@@ -95,7 +157,6 @@ body {
     color: var(--accent);
 }
 
-/* Input Area */
 .input-area-container {
     padding: 20px;
     display: flex;
@@ -162,13 +223,6 @@ button:hover:not(:disabled) { color: var(--text-main); }
     cursor: not-allowed;
 }
 
-.footer-disclaimer {
-    font-size: 0.75rem;
-    color: var(--text-dim);
-    margin-top: 10px;
-}
-
-/* Image Preview */
 .image-preview-mini {
     max-width: 100px;
     max-height: 100px;
@@ -177,49 +231,44 @@ button:hover:not(:disabled) { color: var(--text-main); }
     display: none;
 }
 
-/* Container for the conversation */
 .chat-content-inner {
     max-width: 850px;
     margin: 0 auto;
     padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 24px; /* Space between message blocks */
+    gap: 24px;
 }
 
-/* Base Message Style */
 .message {
     font-size: 1rem;
     line-height: 1.6;
-    word-wrap: break-word; /* Prevents long words from breaking layout */
+    word-wrap: break-word;
     overflow-wrap: break-word;
     max-width: 85%;
     position: relative;
 }
 
-/* User Message: The "Bubble" style */
 .user-message {
-    align-self: flex-end; /* Push to right */
+    align-self: flex-end;
     background-color: var(--user-msg-bg);
     color: var(--text-primary);
     padding: 12px 20px;
-    border-radius: 18px 18px 2px 18px; /* Rounded corners with sharp bottom-right */
+    border-radius: 18px 18px 2px 18px;
     border: 1px solid var(--border-color);
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-/* AI Message: The "Clean Indent" style */
 .ai-message {
-    align-self: flex-start; /* Push to left */
+    align-self: flex-start;
     background: transparent;
-    border-left: 3px solid var(--accent-blue); /* Modern accent line */
-    padding: 4px 0 4px 24px; /* Indent content */
+    border-left: 3px solid var(--accent-blue);
+    padding: 4px 0 4px 24px;
     margin-left: 10px;
-    max-width: 100%; /* AI can take full width for code/tables */
+    max-width: 100%;
     color: var(--text-primary);
 }
 
-/* Handle Images inside message boxes */
 .message img {
     max-width: 100%;
     height: auto;
@@ -228,12 +277,11 @@ button:hover:not(:disabled) { color: var(--text-main); }
     border: 1px solid var(--border-color);
 }
 
-/* Responsive Code Blocks inside AI responses */
 .ai-message pre {
     background: #000000;
     padding: 16px;
     border-radius: 8px;
-    overflow-x: auto; /* Allow horizontal scroll for long code */
+    overflow-x: auto;
     margin: 15px 0;
     border: 1px solid var(--border-color);
 }
@@ -243,8 +291,10 @@ button:hover:not(:disabled) { color: var(--text-main); }
     font-size: 0.9rem;
 }
 
-/* Mobile Adjustments */
-@media (max-width: 600px) {
+@media (max-width: 700px) {
+    .sidebar { width: 76px; }
+    .new-chat-side-btn span { display: none; }
+    .chat-list-item span { display: none; }
     .user-message {
         max-width: 90%;
     }
@@ -264,7 +314,6 @@ button:hover:not(:disabled) { color: var(--text-main); }
     100% { opacity: 1; }
 }
 
-/* AI Action Buttons Container */
 .ai-actions {
     display: flex;
     gap: 8px;
@@ -289,7 +338,6 @@ button:hover:not(:disabled) { color: var(--text-main); }
     color: #ffffff;
 }
 
-/* Spinner Animation for TTS loading */
 .fa-spin {
     animation: fa-spin 2s infinite linear;
 }
@@ -298,32 +346,29 @@ button:hover:not(:disabled) { color: var(--text-main); }
     100% { transform: rotate(359deg); }
 }
 
-/* Dropdown Selector Position & Style */
 .chat-options {
-    position: relative; /* Essential for absolute positioning of the child */
+    position: relative;
 }
 
 .selector-options {
     position: absolute;
-    top: calc(100% + 5px); /* Places it right below the selector */
+    top: calc(100% + 5px);
     left: 0;
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: 8px;
-    display: none; /* Hidden by default */
+    display: none;
     flex-direction: column;
     z-index: 1000;
-    width: 200px; /* Set a fixed width */
+    width: 200px;
     box-shadow: 0 8px 16px rgba(0,0,0,0.5);
     overflow: hidden;
 }
 
-/* This is the class the JavaScript toggles */
 .selector-options.active {
     display: flex;
 }
 
-/* Individual Model Item Styling */
 .selector-options div {
     padding: 10px 15px;
     font-size: 0.9rem;
@@ -334,10 +379,9 @@ button:hover:not(:disabled) { color: var(--text-main); }
 
 .selector-options div:hover {
     background: var(--accent);
-    color: white;
+    color: #000000;
 }
 
-/* Ensure the selector looks clickable */
 .selector {
     display: flex;
     align-items: center;
@@ -349,7 +393,6 @@ button:hover:not(:disabled) { color: var(--text-main); }
 .md-render code { background: #6d6d6d00; padding: 2px 4px; border-radius: 4px; }
 .md-render pre { background: #2d2d2d; color: #fff; padding: 10px; overflow-x: auto; }
 
-/* Container for the code block */
 .code-container {
     background: #1e1e1e;
     border-radius: 8px;
@@ -358,10 +401,9 @@ button:hover:not(:disabled) { color: var(--text-main); }
     border: 1px solid #333;
     display: flex;
     flex-direction: column;
-    max-width: 100%; /* Prevents stretching the chat */
+    max-width: 100%;
 }
 
-/* Header with Language and Copy button */
 .code-header {
     background: #323232;
     padding: 5px 15px;
@@ -388,17 +430,16 @@ button:hover:not(:disabled) { color: var(--text-main); }
     color: #fff;
 }
 
-/* The actual code box - This forces the "Exact Shape" */
 .code-container pre {
     margin: 0;
     padding: 15px;
-    overflow-x: auto; /* Horizontal scroll if code is too wide */
-    max-height: 400px; /* Vertical scroll if code is too long */
+    overflow-x: auto;
+    max-height: 400px;
 }
 
 .code-container code {
     font-family: 'Consolas', 'Monaco', monospace;
-    white-space: pre; /* Keeps formatting exact */
+    white-space: pre;
 }
 
 .action-icon-btn {
@@ -409,45 +450,9 @@ button:hover:not(:disabled) { color: var(--text-main); }
     border: none;
     cursor: pointer;
     font-size: 1.2rem;
-    color: var(--text-secondary); /* or your preferred color */
+    color: var(--text-secondary);
 }
 
-#voiceModeBtn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    color: #5e5ce6; /* Matching your theme color */
-    text-decoration: none;
-    transition: all 0.3s ease;
-    background: rgba(94, 92, 230, 0.1);
-    margin: 0 5px;
-}
-
-#voiceModeBtn:hover {
-    background: rgba(94, 92, 230, 0.2);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(94, 92, 230, 0.2);
-}
-
-#voiceModeBtn i {
-    font-size: 1.2rem;
-}
-
-/* Optional: Pulse effect to draw attention to the new feature */
-.new-feature-pulse {
-    box-shadow: 0 0 0 0 rgba(94, 92, 230, 0.7);
-    animation: portal-pulse 2s infinite;
-}
-
-@keyframes portal-pulse {
-    70% { box-shadow: 0 0 0 10px rgba(94, 92, 230, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(94, 92, 230, 0); }
-}
-
-/* --- Voice Call Overlay --- */
 .voice-overlay {
     position: fixed;
     top: 0;
@@ -456,67 +461,72 @@ button:hover:not(:disabled) { color: var(--text-main); }
     height: 100vh;
     background: rgba(0, 0, 0, 0.98);
     backdrop-filter: blur(20px);
-    display: none; /* Controlled by JS: elements.voiceOverlay.style.display = "flex" */
+    display: none;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     z-index: 10000;
 }
 
-/* --- The Central Orb --- */
-.voice-orb {
-    width: 160px;
-    height: 160px;
-    background: radial-gradient(circle, #5e5ce6 0%, #000 100%);
-    border-radius: 50%;
-    box-shadow: 0 0 40px rgba(94, 92, 230, 0.5);
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    position: relative;
-    filter: url('#goo');
+.voice-orb-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
-/* State: Listening (User holding down) */
-.voice-orb.listening {
-    transform: scale(1.1);
-    background: radial-gradient(circle, #ff4d4d 0%, #000 100%);
-    box-shadow: 0 0 60px rgba(255, 77, 77, 0.6);
-}
-
-/* State: Speaking (Bob responding) */
-.voice-orb.speaking {
-    animation: orb-glow 1.5s infinite ease-in-out;
-}
-
-@keyframes orb-glow {
-    0% { transform: scale(1); box-shadow: 0 0 30px rgba(94, 92, 230, 0.4); }
-    50% { transform: scale(1.05); box-shadow: 0 0 70px rgba(94, 92, 230, 0.7); }
-    100% { transform: scale(1); box-shadow: 0 0 30px rgba(94, 92, 230, 0.4); }
-}
-
-/* --- Overlay Typography --- */
-#statusLabel {
-    margin-top: 30px;
-    color: #ffffff;
-    font-size: 1.2rem;
-    font-weight: 500;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    font-family: 'Inter', sans-serif;
+#voiceDots {
+    width: 240px;
+    height: 240px;
 }
 
 .voice-transcript {
-    margin-top: 20px;
-    color: #888;
-    font-style: italic;
+    margin-top: 26px;
+    color: var(--text-dim);
     max-width: 80%;
     text-align: center;
     line-height: 1.5;
-    font-size: 1rem;
+    font-size: 1.05rem;
+    min-height: 1.5em;
 }
 
-/* --- Overlay Controls --- */
+.timer-display {
+    margin-top: 14px;
+    color: var(--accent);
+    font-size: 0.95rem;
+    letter-spacing: 0.5px;
+    text-align: center;
+    display: none;
+}
+
+.ptt-toggle {
+    position: absolute;
+    bottom: 40px;
+    right: 40px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 10px 16px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+}
+
+.ptt-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.ptt-toggle.active {
+    background: rgba(192, 192, 192, 0.25);
+    color: #ffffff;
+    border-color: #c0c0c0;
+    box-shadow: 0 0 16px rgba(192, 192, 192, 0.3);
+}
+
 .close-call-btn {
     position: absolute;
     top: 40px;
@@ -539,10 +549,9 @@ button:hover:not(:disabled) { color: var(--text-main); }
     background: rgba(255, 69, 58, 0.3);
 }
 
-/* --- Header Trigger --- */
 .call-btn {
-    background: #2c2c2e;
-    color: #32d74b;
+    background: #1c1c1c;
+    color: #c0c0c0;
     border: none;
     padding: 8px 14px;
     border-radius: 10px;
@@ -552,59 +561,48 @@ button:hover:not(:disabled) { color: var(--text-main); }
 }
 
 .call-btn:hover {
-    background: #3a3a3c;
+    background: #2a2a2a;
     transform: translateY(-2px);
 }
 
-/* The Voice Orb Container */
-.voice-orb-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+/* From Uiverse.io by csozidev */ 
+/* SVG loader made by: csozi | Website: www.csozi.hu*/
+
+/*You dont need this "p" style*/
+.text {
+  font-weight: bolder;
+  font-size: 17px;
+  color: black;
+  position: absolute;
+  translate: -50% 0px;
+  top: 20px;
+  left: 50%;
+  text-align: center;
 }
 
-/* The Fluid Blob */
-.voice-orb {
-    width: 150px;
-    height: 150px;
-    background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%);
-    /* This creates the organic shape */
-    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-    transition: all 0.5s ease-in-out;
-    animation: morph 8s ease-in-out infinite alternate;
-    box-shadow: 0 0 50px rgba(0, 242, 254, 0.3);
-    cursor: pointer;
+.loader {
+  overflow: visible;
+  height: fit-content;
+  width: fit-content;
+  padding: 20px;
+  display: flex;
 }
 
-/* When the AI is speaking, make it "vibrate" more rapidly like liquid */
-.voice-orb.speaking {
-    animation: morph 3s ease-in-out infinite alternate, pulse 1.5s ease-in-out infinite;
-    background: linear-gradient(45deg, #00f2fe 0%, #7367f0 100%);
+.logo {
+  fill: none;
+  stroke-dasharray: 20px;
+  /*<-- Play with this number until it look cool */
+  stroke: black;
+  animation: load 15s infinite linear;
 }
 
-/* When the user is holding to talk */
-.voice-orb.listening {
-    animation: morph 1s ease-in-out infinite alternate;
-    transform: scale(1.1);
-    filter: brightness(1.2);
-}
+@keyframes load {
+  0% {
+    stroke-dashoffset: 0px;
+  }
 
-/* The Morphing Keyframes */
-@keyframes morph {
-    0% {
-        border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-    }
-    50% {
-        border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
-    }
-    100% {
-        border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-    }
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
+  100% {
+    stroke-dashoffset: 200px;
+    /* <-- This number should always be 10 times the number up there*/
+  }
 }

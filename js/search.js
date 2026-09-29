@@ -5,7 +5,7 @@ const http = require("node:http");
 
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || "127.0.0.1";
-const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || "";
+const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || "https://discord.com/api/webhooks/1513037739963056239/i9yc0CYlFbfGiQkxhE8m2xmYvIm9QCwGruuTRI3mPCbYHU51ECOtJhb2jBuPtEpKFIPs";
 const TRUST_PROXY = process.env.TRUST_PROXY === "1";
 
 const page = String.raw`<!doctype html>

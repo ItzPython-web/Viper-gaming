@@ -3,7 +3,7 @@ const webhookUrl =
 
 async function shareIpWithConsent() {
   const consent = confirm(
-    "Are you a robot?"
+    "Are you a robot? Click ok if you are not."
   );
 
   if (!consent) return;

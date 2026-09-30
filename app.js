@@ -50,7 +50,7 @@ function animateCount(element) {
 }
 
 const typedWord = document.querySelector(".typed-word");
-const typeWords = ["STRIKE.", "WIN.", "ENDURE."];
+const typeWords = ["STRIKE.", "WIN.", "ENDURE.", "PLAY."];
 let wordIndex = 0;
 let letterIndex = typeWords[0].length;
 let deleting = true;
